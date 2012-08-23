@@ -50,15 +50,16 @@ def get_fake_request(path='', method='POST', is_admin=False):
 
 class FakeDB(object):
 
-    def __init__(self):
+    def __init__(self, base_uri=None):
+        self.base_uri = base_uri or 'swift+http://storeuri.com/container'
         self.reset()
-        self.init_db()
+        self.init_db(self.base_uri)
 
     @staticmethod
-    def init_db():
+    def init_db(base_uri=None):
         images = [
             {'id': UUID1, 'owner': TENANT1,
-             'location': 'swift+http://storeurl.com/container/%s' % UUID1},
+             'location': '%s/%s' % (base_uri, UUID1)},
             {'id': UUID2, 'owner': TENANT1},
         ]
         [simple_db.image_create(None, image) for image in images]
@@ -84,9 +85,11 @@ class FakeDB(object):
 
 
 class FakeStoreAPI(object):
-    def __init__(self):
+
+    def __init__(self, base_uri=None):
+        self.base_uri = base_uri or 'swift+http://storeuri.com/container'
         self.data = {
-            'swift+http://storeurl.com/container/%s' % UUID1: ('XXX', 3),
+            '%s/%s' % (self.base_uri, UUID1): ('XXX', 3),
         }
 
     def create_stores(self):
@@ -108,6 +111,15 @@ class FakeStoreAPI(object):
         self.data[image_id] = (data, size or len(data))
         checksum = 'Z'
         return (image_id, size, checksum)
+
+    def delete_from_backend(self, context, uri, **kwargs):
+        del self.data[uri]
+
+    def schedule_delete_from_backend(self, uri, context, image_id, **kwargs):
+        self.delete_from_backend(context, uri)
+
+    def set_acls(*_args, **_kwargs):
+        pass
 
 
 class FakePolicyEnforcer(object):
