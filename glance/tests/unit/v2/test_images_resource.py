@@ -73,18 +73,20 @@ class TestImagesController(test_utils.BaseTestCase):
 
     def setUp(self):
         super(TestImagesController, self).setUp()
-        self.db = unit_test_utils.FakeDB()
+        self.base_uri = 'swift+http://storeuri.com/container'
+        self.db = unit_test_utils.FakeDB(base_uri=self.base_uri)
         self.policy = unit_test_utils.FakePolicyEnforcer()
+        self.store = unit_test_utils.FakeStoreAPI(base_uri=self.base_uri)
         self._create_images()
         self.controller = glance.api.v2.images.ImagesController(self.db,
-                                                                self.policy)
-        glance.store.create_stores()
+                                                                self.policy,
+                                                                self.store)
 
     def _create_images(self):
         self.db.reset()
         self.images = [
             _fixture(UUID1, owner=TENANT1, name='1', size=256, is_public=True,
-                     location='swift+http://example.com/container/%s' % UUID1),
+                     location='%s/%s' % (self.base_uri, UUID1)),
             _fixture(UUID2, owner=TENANT1, name='2', size=512, is_public=True),
             _fixture(UUID3, owner=TENANT3, name='3', size=512, is_public=True),
             _fixture(UUID4, owner=TENANT4, name='4', size=1024),
@@ -343,10 +345,15 @@ class TestImagesController(test_utils.BaseTestCase):
 
     def test_delete(self):
         request = unit_test_utils.get_fake_request()
-        try:
-            self.controller.delete(request, UUID1)
-        except Exception as e:
-            self.fail("Delete raised exception: %s" % e)
+        for k in self.store.data:
+            self.assertTrue(UUID1 in k)
+
+        self.controller.delete(request, UUID1)
+        deleted_img = self.db.image_get(request.context, UUID1,
+                                        force_show_deleted=True)
+        self.assertTrue(deleted_img['deleted'])
+        for k in self.store.data:
+            self.assertFalse(UUID1 in k)
 
     def test_delete_non_existant(self):
         request = unit_test_utils.get_fake_request()
