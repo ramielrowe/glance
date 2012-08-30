@@ -15,9 +15,23 @@
 
 import errno
 
+from glance.openstack.common import cfg
 from glance.openstack.common import log as logging
 
 LOG = logging.getLogger(__name__)
+
+common_opts = [
+    cfg.ListOpt('image_container_formats',
+                default=['ami', 'ari', 'aki', 'bare', 'ovf'],
+                help=_('Acceptable image container formats.')),
+    cfg.ListOpt('image_disk_formats',
+                default=['ami', 'ari', 'aki', 'vhd', 'vmdk', 'raw', 'qcow2',
+                         'vdi', 'iso'],
+                help=_('Acceptable image disk formats')),
+]
+
+CONF = cfg.CONF
+CONF.register_opts(common_opts)
 
 
 def size_checked_iter(response, image_meta, expected_size, image_iter,

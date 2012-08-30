@@ -1558,6 +1558,70 @@ class TestRegistryAPI(base.IsolatedUnitTest):
         # Test status was updated properly
         self.assertEquals('active', res_dict['image']['status'])
 
+    def test_create_image_without_disk_format(self):
+        """Tests that the /images POST registry API creates the image"""
+        fixture = {'name': 'fake public image',
+                   'is_public': True,
+                   'container_format': 'ovf'}
+
+        req = webob.Request.blank('/images')
+
+        req.method = 'POST'
+        req.content_type = 'application/json'
+        req.body = json.dumps(dict(image=fixture))
+
+        res = req.get_response(self.api)
+
+        self.assertEquals(res.status_int, 400)
+
+    def test_create_image_without_container_format(self):
+        """Tests that the /images POST registry API creates the image"""
+        fixture = {'name': 'fake public image',
+                   'is_public': True,
+                   'disk_format': 'vhd'}
+
+        req = webob.Request.blank('/images')
+
+        req.method = 'POST'
+        req.content_type = 'application/json'
+        req.body = json.dumps(dict(image=fixture))
+
+        res = req.get_response(self.api)
+
+        self.assertEquals(res.status_int, 400)
+
+    def test_create_image_with_bad_disk_format(self):
+        """Tests that the /images POST registry API creates the image"""
+        fixture = {'name': 'fake public image',
+                   'is_public': True,
+                   'disk_format': 'dddd'}
+
+        req = webob.Request.blank('/images')
+
+        req.method = 'POST'
+        req.content_type = 'application/json'
+        req.body = json.dumps(dict(image=fixture))
+
+        res = req.get_response(self.api)
+
+        self.assertEquals(res.status_int, 400)
+
+    def test_create_image_with_bad_container_format(self):
+        """Tests that the /images POST registry API creates the image"""
+        fixture = {'name': 'fake public image',
+                   'is_public': True,
+                   'container_format': 'dddd'}
+
+        req = webob.Request.blank('/images')
+
+        req.method = 'POST'
+        req.content_type = 'application/json'
+        req.body = json.dumps(dict(image=fixture))
+
+        res = req.get_response(self.api)
+
+        self.assertEquals(res.status_int, 400)
+
     def test_create_image_with_min_disk(self):
         """Tests that the /images POST registry API creates the image"""
         fixture = {'name': 'fake public image',
