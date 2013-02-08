@@ -1,0 +1,83 @@
+#!/usr/bin/env python
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+
+# Copyright 2013 OpenStack LLC.
+# All Rights Reserved.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
+"""
+Glance Exists Notification Generator
+"""
+
+import datetime
+import gettext
+import os
+import sys
+
+# If ../glance/__init__.py exists, add ../ to Python search path, so that
+# it will override what happens to be installed in /usr/(local/)lib/python...
+possible_topdir = os.path.normpath(os.path.join(os.path.abspath(sys.argv[0]),
+                                   os.pardir,
+                                   os.pardir))
+if os.path.exists(os.path.join(possible_topdir, 'glance', '__init__.py')):
+    sys.path.insert(0, possible_topdir)
+
+gettext.install('glance', unicode=1)
+
+from glance.common import config
+from glance.notifier import exists_generator
+from glance.openstack.common import cfg
+from glance.openstack.common import timeutils
+
+CONF = cfg.CONF
+
+
+if __name__ == '__main__':
+    CONF.register_cli_opt(
+        cfg.StrOpt('period',
+                   short='p',
+                   default='day',
+                   help='Determines period for which to generate image.exists.'
+                        'Values are hour, dar, week, month'))
+    CONF.register_cli_opt(
+        cfg.BoolOpt('wait',
+                    short='w',
+                    default=False,
+                    help='Whether script will wait until end of period to run'
+                         'or run immediately.'
+                         'Values are True or False'))
+    CONF.register_cli_opt(
+        cfg.StrOpt('time',
+                   short='t',
+                   default=None,
+                   help='Overrides current time.'
+                        'Value should be in ISO 8601 format'))
+
+    try:
+
+        default_cfg_files = cfg.find_config_files(project='glance',
+                                                  prog='glance-api')
+        config.parse_args(default_config_files=default_cfg_files,
+                          usage="%(prog)s [options] <cmd>")
+        config.setup_logging()
+
+        time = datetime.datetime.utcnow()
+        if CONF.time is not None:
+            time = timeutils.parse_isotime(CONF.time)
+
+        app = exists_generator.ExistsGenerator(CONF.period, CONF.wait,
+                                               CONF.time)
+        app.run()
+    except RuntimeError, e:
+        sys.exit("ERROR: %s" % e)

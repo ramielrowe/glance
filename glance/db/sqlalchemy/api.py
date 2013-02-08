@@ -22,6 +22,7 @@
 Defines interface for DB access
 """
 
+import datetime
 import logging
 import time
 
@@ -527,17 +528,25 @@ def image_get_all(context, filters=None, marker=None, limit=None,
             key = k
             if k.endswith('_min') or k.endswith('_max'):
                 key = key[0:-4]
-                try:
-                    v = int(v)
-                except ValueError:
-                    msg = _("Unable to filter on a range "
-                            "with a non-numeric value.")
-                    raise exception.InvalidFilterRangeValue(msg)
+                if isinstance(v, datetime.datetime):
+                    v = timeutils.normalize_time(v)
+                else:
+                    try:
+                        v = int(v)
+                    except ValueError:
+                        msg = _("Unable to filter on a range "
+                                "with a non-numeric value.")
+                        raise exception.InvalidFilterRangeValue(msg)
+
+            if k.endswith('_not'):
+                key = key[0:-4]
 
             if k.endswith('_min'):
                 query = query.filter(getattr(models.Image, key) >= v)
             elif k.endswith('_max'):
                 query = query.filter(getattr(models.Image, key) <= v)
+            elif hasattr(models.Image, key) and k.endswith('_not'):
+                query = query.filter(getattr(models.Image, key) != v)
             elif hasattr(models.Image, key):
                 query = query.filter(getattr(models.Image, key) == v)
             else:

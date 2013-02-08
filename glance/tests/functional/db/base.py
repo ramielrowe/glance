@@ -255,6 +255,14 @@ class TestDriver(base.IsolatedUnitTest):
         self.assertEquals(len(images), 1)
         self.assertEquals(images[0]['id'], self.fixtures[0]['id'])
 
+    def test_image_get_all_with_not_filter(self):
+        filters = {'id_not': self.fixtures[0]['id']}
+        images = self.db_api.image_get_all(self.context,
+                                           filters=filters)
+        self.assertEquals(len(images), 2)
+        self.assertNotEquals(images[0]['id'], self.fixtures[0]['id'])
+        self.assertNotEquals(images[1]['id'], self.fixtures[0]['id'])
+
     def test_image_get_all_with_filter_user_defined_property(self):
         images = self.db_api.image_get_all(self.context,
                                            filters={'foo': 'bar'})
@@ -309,6 +317,39 @@ class TestDriver(base.IsolatedUnitTest):
                                            filters={'size_max': 15})
         self.assertEquals(len(images), 1)
         self.assertEquals(images[0]['id'], self.fixtures[0]['id'])
+
+    def test_image_get_all_created_min(self):
+        filters = {'created_at_min': self.fixtures[2]['created_at']}
+        images = self.db_api.image_get_all(self.context,
+                                           filters=filters)
+        self.assertEquals(len(images), 1)
+        self.assertEquals(images[0]['id'], self.fixtures[2]['id'])
+
+    def test_image_get_all_created_max(self):
+        filters = {'created_at_max': self.fixtures[0]['created_at']}
+        images = self.db_api.image_get_all(self.context,
+                                           filters=filters)
+        self.assertEquals(len(images), 2)
+        self.assertTrue(images[0]['id'] in
+                        [self.fixtures[0]['id'], self.fixtures[1]['id']])
+        self.assertTrue(images[1]['id'] in
+                        [self.fixtures[0]['id'], self.fixtures[1]['id']])
+
+    def test_image_get_all_created_range(self):
+        dt = self.fixtures[2]['created_at'] + datetime.timedelta(seconds=1)
+        fixture = {
+            'id': uuidutils.generate_uuid(),
+            'created_at': dt,
+            'updated_at': dt,
+        }
+        filters = {'created_at_min': self.fixtures[0]['created_at'],
+                   'created_at_max': self.fixtures[2]['created_at']}
+        images = self.db_api.image_get_all(self.context,
+                                           filters=filters)
+        self.assertEquals(len(images), 3)
+        self.assertNotEquals(images[0]['id'], fixture['id'])
+        self.assertNotEquals(images[1]['id'], fixture['id'])
+        self.assertNotEquals(images[2]['id'], fixture['id'])
 
     def test_image_get_all_with_filter_min_range_bad_value(self):
         self.assertRaises(exception.InvalidFilterRangeValue,

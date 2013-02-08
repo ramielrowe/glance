@@ -14,6 +14,7 @@
 #    under the License.
 
 import copy
+import datetime
 import functools
 
 from glance.common import exception
@@ -140,16 +141,21 @@ def _filter_images(images, filters, context):
             key = k
             if k.endswith('_min') or k.endswith('_max'):
                 key = key[0:-4]
-                try:
-                    value = int(value)
-                except ValueError:
-                    msg = _("Unable to filter on a range "
-                            "with a non-numeric value.")
-                    raise exception.InvalidFilterRangeValue(msg)
+                if not isinstance(value, datetime.datetime):
+                    try:
+                        value = int(value)
+                    except ValueError:
+                        msg = _("Unable to filter on a range "
+                                "with a non-numeric value.")
+                        raise exception.InvalidFilterRangeValue(msg)
+            if k.endswith('_not'):
+                key = key[0:-4]
             if k.endswith('_min'):
                 add = image.get(key) >= value
             elif k.endswith('_max'):
                 add = image.get(key) <= value
+            elif k.endswith('_not'):
+                add = image.get(key) != value
             elif image.get(k) is not None:
                 add = image.get(key) == value
             else:

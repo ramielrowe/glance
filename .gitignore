@@ -17,3 +17,4 @@ dist
 glance.egg-info
 tests.sqlite
 glance/versioninfo
+.idea/
